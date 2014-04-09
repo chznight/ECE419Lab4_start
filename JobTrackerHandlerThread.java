@@ -24,48 +24,43 @@ public class JobTrackerHandlerThread extends Thread {
 		boolean gotByePacket = false;
 		
 		try {
-			/* stream to read from client */
 			ObjectInputStream fromClient = new ObjectInputStream(socket.getInputStream());
-			EchoPacket packetFromClient;
+			JobPacket packetFromClient;
 			
-			/* stream to write back to client */
 			ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
 			
 
-			while (( packetFromClient = (EchoPacket) fromClient.readObject()) != null) {
-				/* create a packet to send reply back to client */
-				EchoPacket packetToClient = new EchoPacket();
-				packetToClient.type = EchoPacket.ECHO_REPLY;
+			while (( packetFromClient = (JobPacket) fromClient.readObject()) != null) {
+				JobPacket packetToClient = new JobPacket();
 				
-				/* process message */
-				/* just echo in this example */
-				if(packetFromClient.type == EchoPacket.ECHO_REQUEST) {
-					packetToClient.message = packetFromClient.message;
-					System.out.println("From Client: " + packetFromClient.message);
-				
-					/* send reply back to client */
-					toClient.writeObject(packetToClient);
+				if(packetFromClient.type == JobPacket.JOB_SUBMISSION) {
+					System.out.println("(SUBMISSION) From Client: " + packetFromClient.content);
 					
-					/* wait for next packet */
+					// process the job here
+
+					packetToClient.type = JobPacket.JOB_RECEIVED;
+					toClient.writeObject(packetToClient);
+					continue;
+				}
+
+				if(packetFromClient.type == JobPacket.JOB_QUERY) {
+					System.out.println("(QUERY) From Client: " + packetFromClient.content);
+
+					// query status of job here
+
+					//packetToClient.type = JobPacket.JOB_CALCULATING;
+					//packetToClient.type = JobPacket.JOB_FOUND;
+					//packetToClient.content = password;
+					//packetToClient.type = JobPacket.JOB_NOTFOUND;
+					
+					toClient.writeObject(packetToClient);
 					continue;
 				}
 				
-				/* Sending an ECHO_NULL || ECHO_BYE means quit */
-				if (packetFromClient.type == EchoPacket.ECHO_NULL || packetFromClient.type == EchoPacket.ECHO_BYE) {
-					gotByePacket = true;
-					packetToClient = new EchoPacket();
-					packetToClient.type = EchoPacket.ECHO_BYE;
-					packetToClient.message = "Bye!";
-					toClient.writeObject(packetToClient);
-					break;
-				}
-				
-				/* if code comes here, there is an error in the packet */
-				System.err.println("ERROR: Unknown ECHO_* packet!!");
+				System.err.println("ERROR: Unknown JOB_* packet!!");
 				System.exit(-1);
 			}
 			
-			/* cleanup when client exits */
 			fromClient.close();
 			toClient.close();
 			socket.close();
