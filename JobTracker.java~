@@ -149,13 +149,13 @@ public class JobTracker {
 		    while (listening) {
 		        new JobTrackerHandlerThread(serverSocket.accept(), args[0]).start();
 		    }
-		} catch (IOException e) {
+		} catch (IOExceptions e) {
 
 		}
 		
 		try {
         	serverSocket.close();
-		} catch (IOException e) {
+		} catch (IOExceptions e) {
 
 		}
 
