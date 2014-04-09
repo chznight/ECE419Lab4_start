@@ -57,7 +57,7 @@ public class FileServer {
 				toIndex=dictionary_list.size()-1;
 			}else{
 				fromIndex+=1000;
-				toIndex+=1000;			
+				toIndex+=1000;
 			}
 		}
 

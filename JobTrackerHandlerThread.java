@@ -36,9 +36,11 @@ public class JobTrackerHandlerThread extends Thread {
 				if(packetFromClient.type == JobPacket.JOB_SUBMISSION) {
 					System.out.println("(SUBMISSION) From Client: " + packetFromClient.content);
 					
-					// process the job here
+					/* process the job here */
 
-					packetToClient.type = JobPacket.JOB_RECEIVED;
+					//packetToClient.type = JobPacket.JOB_RECEIVED;
+					packetToClient.type = JobPacket.JOB_RECEIVED; //just send back this
+
 					toClient.writeObject(packetToClient);
 					continue;
 				}
@@ -46,13 +48,15 @@ public class JobTrackerHandlerThread extends Thread {
 				if(packetFromClient.type == JobPacket.JOB_QUERY) {
 					System.out.println("(QUERY) From Client: " + packetFromClient.content);
 
-					// query status of job here
+					/* query status of job here */
 
 					//packetToClient.type = JobPacket.JOB_CALCULATING;
 					//packetToClient.type = JobPacket.JOB_FOUND;
 					//packetToClient.content = password;
 					//packetToClient.type = JobPacket.JOB_NOTFOUND;
 					
+					packetToClient.type = JobPacket.JOB_CALCULATING; //just send back this
+
 					toClient.writeObject(packetToClient);
 					continue;
 				}

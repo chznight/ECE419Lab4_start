@@ -31,36 +31,71 @@ public class ClientDriver {
             System.out.println("Zookeeper connect "+ e.getMessage());
         }
 		
-        ZooKeeper zk = zkc.getZooKeeper();
+        ZooKeeper zk = zkc.getZooKeeper(); /*How to find the job tracker ip and port*/
+	Socket socket=null; //temporarily setting this to null
 		
 	ArrayList<String> job_list = new ArrayList<String>();
 	boolean calculating = true;
 	try{
+		ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
+		JobPacket packetFromServer;
+		ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
+
 		while(calculating){
-			System.out.println("Enter 'r' to submit Job request, or"); 
+			JobPacket packetToServer = new JobPacket();
+			System.out.println("Enter 's' to submit Job request, or"); 
 			System.out.println("Enter 'q' to submit Job status query:");
 			System.out.print("> ");
 			BufferedReader buffer=new BufferedReader(new InputStreamReader(System.in));
 			String line=buffer.readLine();
-			if(line.equals("r")){
+			if(line.equals("s")){
 				job_list.add(line);
 				System.out.println("Gonna crack "+line+"! This is job #"+job_list.size());
-				/*Send submission to job tracker here*/
-				continue;
+				packetToServer.type = JobPacket.JOB_SUBMISSION;				
+				packetToServer.content=line;
+				toServer.writeObject(packetToServer);
+
+				packetFromServer = (JobPacket) fromServer.readObject();
+
+				if(packetFromServer.type==JobPacket.JOB_RECEIVED){
+					System.out.println("Submission received");
+				}else{
+					System.err.println("ERROR: Unknown JOB_* packet!!");
+					System.exit(-1);
+				}
+
 			}
 			if(line.equals("q")){
 				for(int i=0;i<job_list.size();i++){
 					System.out.println("Querying status of job #"+(i+1)+"...");
-					/*Send query to job tracker here*/
-					System.out.println("Password not found");
-					System.out.println("Password found: ");						
+					packetToServer.type = JobPacket.JOB_QUERY;				
+					packetToServer.content=job_list.get(i);
+					toServer.writeObject(packetToServer);	
+
+					packetFromServer = (JobPacket) fromServer.readObject();
+
+					if(packetFromServer.type==JobPacket.JOB_CALCULATING){
+						System.out.println("Calculating");
+					}else if(packetFromServer.type==JobPacket.JOB_FOUND){
+						System.out.println("Password found: "+packetFromServer.content);
+					}else if(packetFromServer.type==JobPacket.JOB_NOTFOUND){
+						System.out.println("Password not found");	
+					}else{
+						System.err.println("ERROR: Unknown JOB_* packet!!");
+						System.exit(-1);
+					}
+
 				}
+			}else{
+				System.out.println("Invalid input");
+				continue;
 			}
-			System.out.println("Invalid input");
+			
 		}		
 	}catch(Exception e){
 		System.err.println(e);
 	}
 		
     }
+
 }
