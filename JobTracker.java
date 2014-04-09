@@ -23,17 +23,30 @@ public class JobTracker {
     
 
     public static void main(String[] args) {
-        
-        if (args.length != 1) {
-            System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. JobTracker zkServer:clientPort");
+
+        ServerSocket serverSocket = null;
+        boolean listening = true;
+        int myPort;
+
+        if (args.length != 2) {
+            System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. JobTracker {zkServer:clientPort} {myServerPort}");
             return;
         }
 
         ZkConnector zkc = new ZkConnector();
+        myPort = Integer.parseInt(args[1]);
+
         try {
             zkc.connect(args[0]);
         } catch(Exception e) {
             System.out.println("Zookeeper connect "+ e.getMessage());
+        }
+
+        try {
+            serverSocket = new ServerSocket(myPort);
+        } catch (IOException e) {
+            System.err.println("ERROR: Could not listen on port!");
+            System.exit(-1);
         }
 
         ZooKeeper zk = zkc.getZooKeeper();
@@ -80,14 +93,6 @@ public class JobTracker {
                 System.out.println("Already Exists: " + workerIdDispenser);
             }
 
-            String hostIpPort = InetAddress.getLocalHost().getHostAddress() + ":1113";
-            System.out.println("Creating " + jobTrackerBoss);
-            zk.create(
-                jobTrackerBoss,         // Path of znode
-                hostIpPort.getBytes(),           // Data not needed.
-                Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
-                CreateMode.EPHEMERAL   // Znode type, set to Persistent.
-                );
 
             System.out.println("Creating " + availableWorkers);
             s = zk.exists(availableWorkers, false);
@@ -102,6 +107,14 @@ public class JobTracker {
                 System.out.println("Already Exists: " + availableWorkers);
             }
 
+            String hostIpPort = InetAddress.getLocalHost().getHostAddress() + ":" + myPort;
+            System.out.println("Creating " + jobTrackerBoss);
+            zk.create(
+                jobTrackerBoss,         // Path of znode
+                hostIpPort.getBytes(),           // Data not needed.
+                Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
+                CreateMode.EPHEMERAL   // Znode type, set to Persistent.
+                );
 
             //Here we start to look at the list of availible works
             //If a worker is aviliable, we place a task in his work folder: /tasks/work#/
@@ -126,12 +139,16 @@ public class JobTracker {
                     );
             }
 
-
-
         } catch(KeeperException e) {
             System.out.println(e.code());
         } catch(Exception e) {
             System.out.println("Make node:" + e.getMessage());
         }
+
+        while (listening) {
+            new JobTrackerHandlerThread(serverSocket.accept(), args[0]).start();
+        }
+
+        serverSocket.close();
     }
 }

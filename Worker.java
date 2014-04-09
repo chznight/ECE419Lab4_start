@@ -21,6 +21,7 @@ public class Worker {
     static String jobTrackerBoss = "/jobTrackerBoss";
     static String availableWorkers = "/availableWorkers";
 
+
     public static void main(String[] args) {
   
         if (args.length != 1) {
@@ -70,6 +71,8 @@ public class Worker {
 
         // System.out.println("DONE");
         String myWorkFolder;
+        boolean running = true;
+
         try {
             Stat stat = zk.setData (workerIdDispenser, "nothing".getBytes(), -1);
             System.out.println ("version: " + stat.getVersion());
@@ -94,20 +97,21 @@ public class Worker {
                 );
 
 
-            //look for tasks and delete them
-            List<String> list = zk.getChildren(myWorkFolder, true);
-            while (list.size() == 0) {
-                Thread.sleep (5000);
-                list = zk.getChildren(myWorkFolder, true);
+            while (running == true) {
+                //look for tasks and delete them
+                List<String> list = zk.getChildren(myWorkFolder, true);
+                while (list.size() == 0) {
+                    Thread.sleep (5000);
+                    list = zk.getChildren(myWorkFolder, true);
+                }
+
+                for (int i = 0; i < list.size(); i++) {
+                    System.out.println (list.get(i));
+                    //create a task with a unique task number, we will remember this number later for checking if tasks are finished
+                    //process here... then delete
+                    zk.delete(myWorkFolder + "/" + list.get(i), 0);
+                }
             }
-
-            for (int i = 0; i < list.size(); i++) {
-                System.out.println (list.get(i));
-                //create a task with a unique task number, we will remember this number later for checking if tasks are finished
-                zk.delete(myWorkFolder + "/" + list.get(i), 0);
-            }
-
-
         } catch(KeeperException e) {
             System.out.println(e.code());
         } catch(Exception e) {
