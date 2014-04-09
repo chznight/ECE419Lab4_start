@@ -7,7 +7,7 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.ZooKeeper;
-
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.io.IOException;
 
@@ -69,29 +69,43 @@ public class Worker {
         // }
 
         // System.out.println("DONE");
-
+        String myWorkFolder;
         try {
             Stat stat = zk.setData (workerIdDispenser, "nothing".getBytes(), -1);
             System.out.println ("version: " + stat.getVersion());
             myWorkerId = stat.getVersion();
             
+            //make myself seen in the available workers dicrectory
+            //this is temperary node, exist only when im online
             zk.create(
                 availableWorkers + "/worker" + stat.getVersion(),// Path of znode
                 null,           // Data not needed.
                 Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
-                CreateMode.EPHEMERAL   // Znode type, set to Persistent.
+                CreateMode.EPHEMERAL  
                 );
 
+            //create task folder for myself
+            myWorkFolder = myTasks + "/worker" + stat.getVersion();
             zk.create(
-                myTasks + "/worker" + stat.getVersion(),// Path of znode
+                myWorkFolder,// Path of znode
                 null,           // Data not needed.
                 Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
                 CreateMode.PERSISTENT   // Znode type, set to Persistent.
                 );
 
 
+            //look for tasks and delete them
+            List<String> list = zk.getChildren(myWorkFolder, true);
+            while (list.size() == 0) {
+                Thread.sleep (5000);
+                list = zk.getChildren(myWorkFolder, true);
+            }
 
-            Thread.sleep (30000);
+            for (int i = 0; i < list.size(); i++) {
+                System.out.println (list.get(i));
+                //create a task with a unique task number, we will remember this number later for checking if tasks are finished
+                zk.delete(myWorkFolder + "/" + list.get(i), 0);
+            }
 
 
         } catch(KeeperException e) {

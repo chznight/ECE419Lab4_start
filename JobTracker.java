@@ -9,6 +9,7 @@ import org.apache.zookeeper.data.Stat;
 import java.util.*; 
 import java.net.*;
 import java.io.*;
+import java.util.List;
 
 import java.io.IOException;
 
@@ -38,8 +39,6 @@ public class JobTracker {
         ZooKeeper zk = zkc.getZooKeeper();
 
         try {
-            System.out.println("Sleeping...");
-            Thread.sleep(2000);
 
             //path of squence number, later for error handling
             System.out.println("Creating " + squenceNumDispenser);
@@ -103,7 +102,31 @@ public class JobTracker {
                 System.out.println("Already Exists: " + availableWorkers);
             }
 
-            Thread.sleep (30000);
+
+            //Here we start to look at the list of availible works
+            //If a worker is aviliable, we place a task in his work folder: /tasks/work#/
+            //everyone who is avilible has a task placed in his folder
+            List<String> list = zk.getChildren(availableWorkers, true);
+            while (list.size() == 0) {
+                Thread.sleep (5000);
+                list = zk.getChildren(availableWorkers, true);
+            }
+
+            String workerBee;
+            for (int i = 0; i < list.size(); i++) {
+                System.out.println (list.get(i));
+                workerBee = list.get(i);
+                Stat stat = zk.setData (squenceNumDispenser, "nothing".getBytes(), -1);
+                //create a task with a unique task number, we will remember this number later for checking if tasks are finished
+                zk.create(
+                    myTasks + "/" + workerBee + "/task" + stat.getVersion(),
+                    null,           // Data not needed.
+                    Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
+                    CreateMode.PERSISTENT   // Znode type, set to Persistent.
+                    );
+            }
+
+
 
         } catch(KeeperException e) {
             System.out.println(e.code());
