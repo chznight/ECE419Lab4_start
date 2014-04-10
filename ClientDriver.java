@@ -54,7 +54,7 @@ public class ClientDriver {
                         
                             } };		
 
-		System.out.println ("Waiting for server");
+		System.out.println ("Waiting for Job Tracker server");
 
         checkpath();
 

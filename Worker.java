@@ -16,11 +16,10 @@ import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.math.BigInteger;
+import java.util.concurrent.CountDownLatch;
 
 public class Worker {
     
-    static CountDownLatch nodeCreatedSignal = new CountDownLatch(1);
-
     static String squenceNumDispenser = "/squenceNumDispenser";
     static String myTasks = "/tasks";
     static String workerIdDispenser = "/workerIdDispenser";
@@ -30,6 +29,15 @@ public class Worker {
     static String finishedJobs = "/finishedJobs";  
     static String tempResults = "/tempResults";  
     static String fileServerBoss = "/fileServerBoss";
+
+    static ZooKeeper zk;
+    static ZkConnector zkc;
+    static Watcher watcher;
+    static CountDownLatch nodeCreatedSignal;
+
+    static Socket socket = null;
+    static ObjectOutputStream toServer;
+    static ObjectInputStream fromServer;
 
     public static String getHash(String word) {
 
@@ -51,8 +59,16 @@ public class Worker {
             System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. Worker zkServer:clientPort");
             return;
         }
-    
-        ZkConnector zkc = new ZkConnector();
+
+        watcher = new Watcher() { // Anonymous Watcher
+                            @Override
+                            public void process(WatchedEvent event) {
+                                handleEvent(event);
+                        
+                            } };   
+                                 
+        nodeCreatedSignal = new CountDownLatch(1);
+        zkc = new ZkConnector();
         try {
             zkc.connect(args[0]);
         } catch(Exception e) {
@@ -60,40 +76,9 @@ public class Worker {
         }
 
         int myWorkerId;
-        ZooKeeper zk = zkc.getZooKeeper();
+        zk = zkc.getZooKeeper();
         
-        // try {
-        //     zk.exists(
-        //         myPath, 
-        //         new Watcher() {       // Anonymous Watcher
-        //             @Override
-        //             public void process(WatchedEvent event) {
-        //                 // check for event type NodeCreated
-        //                 boolean isNodeCreated = event.getType().equals(EventType.NodeCreated);
-        //                 // verify if this is the defined znode
-        //                 boolean isMyPath = event.getPath().equals(myPath);
-        //                 if (isNodeCreated && isMyPath) {
-        //                     System.out.println(myPath + " created!");
-        //                     nodeCreatedSignal.countDown();
-        //                 }
-        //             }
-        //         });
-        // } catch(KeeperException e) {
-        //     System.out.println(e.code());
-        // } catch(Exception e) {
-        //     System.out.println(e.getMessage());
-        // }
-                            
-        // System.out.println("Waiting for " + myPath + " to be created ...");
-        
-        // try{       
-        //     nodeCreatedSignal.await();
-        // } catch(Exception e) {
-        //     System.out.println(e.getMessage());
-        // }
-
-        // System.out.println("DONE");
-        String myWorkFolder;
+        String myWorkFolder = "";
         boolean running = true;
 
         try {
@@ -118,28 +103,20 @@ public class Worker {
                 Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
                 CreateMode.PERSISTENT   // Znode type, set to Persistent.
                 );
+        } catch (KeeperException e) {
+            System.out.println(e.code());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
 
-            //lookup file server
-            Socket socket=null;
-            Stat s = zk.exists(fileServerBoss, false);
-            while (s == null) {
-                Thread.sleep(5000);
-                System.out.println ("fileServerBoss not registered...waiting for fileServer");
-                s = zk.exists(fileServerBoss, false);
-            }
+        System.out.println ("Waiting for file server");
 
-            byte[] data = zk.getData (fileServerBoss, false, null);
-            String dataString = new String (data);
-            String[] ip_port = dataString.split(":");
-            int port = Integer.parseInt(ip_port[1]);
-            socket = new Socket (ip_port[0], port);
-            ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
-            DictionaryPacket packetFromServer;
-            DictionaryPacket packetToServer;
-            System.out.println ("Connected to file server");
-
-            while (running == true) {
+        checkpath();
+        DictionaryPacket packetToServer;
+        DictionaryPacket packetFromServer;
+        while (running == true) {
+            try {
+                nodeCreatedSignal.await();
                 //look for tasks and delete them
                 List<String> list = zk.getChildren(myWorkFolder, true);
                 while (list.size() == 0) {
@@ -151,8 +128,8 @@ public class Worker {
                     System.out.println (list.get(i));
                     //create a task with a unique task number, we will remember this number later for checking if tasks are finished
                     //process here... then delete
-                    data = zk.getData(myWorkFolder+"/"+list.get(i), false, null);
-                    dataString = new String(data);
+                    byte[] data = zk.getData(myWorkFolder+"/"+list.get(i), false, null);
+                    String dataString = new String(data);
 
                     //token 0 is fromIndex, token 1 is toIndex, token 2 is hash
                     String[] dataStringToken = dataString.split ("[ ]+");
@@ -193,13 +170,52 @@ public class Worker {
                     }
                     zk.delete(myWorkFolder + "/" + list.get(i), 0);
                 }
+            } catch (IOException e) {
+                System.out.println ("File server boss went down");
+                System.out.println(e.getMessage());
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
             }
-        } catch (KeeperException e) {
-            System.out.println(e.code());
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
         }
 
-
     }
+
+    public static void checkpath() {
+        try {
+            Stat stat = zkc.exists(fileServerBoss, watcher);
+            if (stat != null) {
+                byte[] data = zk.getData (fileServerBoss, false, null);
+                String dataString = new String (data);
+                String[] ip_port = dataString.split(":");
+                int server_port = Integer.parseInt(ip_port[1]);
+                socket = new Socket (ip_port[0], server_port);
+                toServer = new ObjectOutputStream(socket.getOutputStream());
+                fromServer = new ObjectInputStream(socket.getInputStream());
+                nodeCreatedSignal.countDown();
+                System.out.println("Connected to fileServer");
+            }         
+        } catch(KeeperException e) {
+            System.out.println(e.code());
+        } catch(Exception e) {
+            System.out.println ("cant connect to host");
+            System.out.println(e.getMessage());
+        }
+    }
+
+    private static void handleEvent(WatchedEvent event) {
+        String path = event.getPath();
+        EventType type = event.getType();
+        if(path.equalsIgnoreCase(fileServerBoss)) {
+            if (type == EventType.NodeDeleted) {
+                nodeCreatedSignal = new CountDownLatch(1);
+                System.out.println(fileServerBoss + " down");
+            }
+            if (type == EventType.NodeCreated) {
+                System.out.println(fileServerBoss + " back up, will reconnect");
+            }
+            checkpath(); // re-enable the watch
+            
+        }
+    }
+
 }
