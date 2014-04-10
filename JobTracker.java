@@ -180,6 +180,7 @@ public class JobTracker {
             System.out.println("Make node:" + e.getMessage());
         }
 
+        taskReschedule();
         System.out.println ("starting to listen for clients");
 		try {
 		    while (listening) {
@@ -216,7 +217,6 @@ public class JobTracker {
         } catch(Exception e) {
             System.out.println(e.getMessage());
         }
-
     }
 
     private static void handleEvent(WatchedEvent event) {
@@ -235,4 +235,54 @@ public class JobTracker {
         }
     }
 
+    private static void taskReschedule() {
+        try {
+            int distributor = 0;
+            List<String> available_workers = zk.getChildren(availableWorkers, true);
+            int worker_list_size = available_workers.size();
+            if (available_workers.size() == 0) { //no working node, cant really do anything
+                return;
+            }
+            List<String> curr_and_past_workers = zk.getChildren(myTasks, true);        
+            if (curr_and_past_workers.size() == 0) { //no past working node, no need to do anything
+                return;
+            }
+            for (int i = 0; i < curr_and_past_workers.size(); i++) {
+                String curr_worker = curr_and_past_workers.get(i);
+                boolean found = false;
+                for (int j = 0; j < available_workers.size(); j++) {
+                    String avail_worker = available_workers.get(j);
+                    if (curr_worker.equals(avail_worker)) {
+                         //this means this worker is still up, we found him in the availible worker dicrectroy
+                        found = true;
+                    }
+                }
+                if (found == false) {
+                    //this means this worker is not availible anymore, we need to clean up
+                    List<String> tasks = zk.getChildren(myTasks + "/" + curr_worker, true);
+                    if (tasks.size() == 0) {
+                        //this worker doesnt have any pending tasks, we will delete him
+                        zk.delete(myTasks + "/" + curr_worker, 0);
+                    } else {
+                        //we need to reshedule his tasks
+                        for (int k = 0; k < tasks.size(); k++) {
+                            byte[] data = zk.getData(myTasks + "/" + curr_worker + "/" + tasks.get(k), false, null);
+                            zk.create(
+                                myTasks + "/" + available_workers.get((distributor++)%worker_list_size) + "/" + tasks.get(k),
+                                data,         
+                                Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
+                                CreateMode.PERSISTENT   // Znode type, set to Persistent.
+                                );        
+                            zk.delete(myTasks + "/" + curr_worker + "/" + tasks.get(k), 0);            
+                        }
+                        zk.delete(myTasks + "/" + curr_worker, 0);
+                    }
+                }
+            }
+        } catch(KeeperException e) {
+            System.out.println(e.code());
+        } catch(Exception e) {
+            System.out.println("Make node:" + e.getMessage());
+        }
+    }
 }
