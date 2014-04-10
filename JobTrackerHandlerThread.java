@@ -36,7 +36,6 @@ public class JobTrackerHandlerThread extends Thread {
 	public void run() {
 
 		boolean gotByePacket = false;
-
 		ZkConnector zkc = new ZkConnector();
         try {
             zkc.connect(zkconnect);
@@ -48,10 +47,8 @@ public class JobTrackerHandlerThread extends Thread {
 
 		try {
 			ObjectInputStream fromClient = new ObjectInputStream(socket.getInputStream());
-			JobPacket packetFromClient;
-			
 			ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
-			
+			JobPacket packetFromClient;
 
 			while (( packetFromClient = (JobPacket) fromClient.readObject()) != null) {
 				JobPacket packetToClient = new JobPacket();
@@ -152,7 +149,30 @@ public class JobTrackerHandlerThread extends Thread {
 							continue;			            
 						}
 
-
+						int totalTasksCounted = 0;
+						boolean found = false;
+						packetToClient.type = JobPacket.JOB_CALCULATING;
+						for (int i = 0; i < list.size(); i++) {
+							String tempComplTask = list.get(i);
+							for (int j = 0; j < squenceNumsOfTask.length; j++) {
+								if (tempComplTask.equals("task"+squenceNumsOfTask[j])) {
+									data = zk.getData (tempResults + "/task" + squenceNumsOfTask[j], false, null);
+									String dataString = new String (data);
+									if (dataString.equals("NOT_FOUND")) {
+										totalTasksCounted++;
+									} else {
+										found = true;
+										packetToClient.type = JobPacket.JOB_FOUND;
+										packetToClient.content = dataString;
+									}
+								}
+							}
+						}
+						if (totalTasksCounted == squenceNumsOfTask.length) {
+							if (found == false) {
+								packetToClient.type = JobPacket.JOB_NOTFOUND;
+							}
+						}
 						//check if nodes are down, if they are reasign tasks
 						//reply accordingly
 					} else {

@@ -15,11 +15,15 @@ import java.io.IOException;
 public class Worker {
     
     static CountDownLatch nodeCreatedSignal = new CountDownLatch(1);
+
     static String squenceNumDispenser = "/squenceNumDispenser";
     static String myTasks = "/tasks";
     static String workerIdDispenser = "/workerIdDispenser";
     static String jobTrackerBoss = "/jobTrackerBoss";
     static String availableWorkers = "/availableWorkers";
+    static String inProgress = "/inProgress";
+    static String finishedJobs = "/finishedJobs";  
+    static String tempResults = "/tempResults";  
 
 
     public static void main(String[] args) {
@@ -109,6 +113,7 @@ public class Worker {
                     System.out.println (list.get(i));
                     //create a task with a unique task number, we will remember this number later for checking if tasks are finished
                     //process here... then delete
+                    zk.create (tempResults + "/" + list.get(i), "NOT_FOUND".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                     zk.delete(myWorkFolder + "/" + list.get(i), 0);
                 }
             }

@@ -20,7 +20,10 @@ public class JobTracker {
     static String workerIdDispenser = "/workerIdDispenser";
     static String jobTrackerBoss = "/jobTrackerBoss";
     static String availableWorkers = "/availableWorkers";
-    
+    static String inProgress = "/inProgress";
+    static String finishedJobs = "/finishedJobs";    
+    static String tempResults = "/tempResults";  
+
 
     public static void main(String[] args) {
 
@@ -107,6 +110,45 @@ public class JobTracker {
                 System.out.println("Already Exists: " + availableWorkers);
             }
 
+            System.out.println("Creating " + inProgress);
+            s = zk.exists(inProgress, false);
+            if (s == null) {    
+                zk.create(
+                    inProgress,         // Path of znode
+                    null,           // Data not needed.
+                    Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
+                    CreateMode.PERSISTENT   // Znode type, set to Persistent.
+                    );
+            } else {
+                System.out.println("Already Exists: " + inProgress);
+            }
+
+            System.out.println("Creating " + finishedJobs);
+            s = zk.exists(finishedJobs, false);
+            if (s == null) {    
+                zk.create(
+                    finishedJobs,         // Path of znode
+                    null,           // Data not needed.
+                    Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
+                    CreateMode.PERSISTENT   // Znode type, set to Persistent.
+                    );
+            } else {
+                System.out.println("Already Exists: " + finishedJobs);
+            }
+
+            System.out.println("Creating " + tempResults);
+            s = zk.exists(tempResults, false);
+            if (s == null) {    
+                zk.create(
+                    tempResults,         // Path of znode
+                    null,           // Data not needed.
+                    Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
+                    CreateMode.PERSISTENT   // Znode type, set to Persistent.
+                    );
+            } else {
+                System.out.println("Already Exists: " + tempResults);
+            }
+
             String hostIpPort = InetAddress.getLocalHost().getHostAddress() + ":" + myPort;
             System.out.println("Creating " + jobTrackerBoss);
             zk.create(
@@ -116,28 +158,6 @@ public class JobTracker {
                 CreateMode.EPHEMERAL   // Znode type, set to Persistent.
                 );
 
-            //Here we start to look at the list of availible works
-            //If a worker is aviliable, we place a task in his work folder: /tasks/work#/
-            //everyone who is avilible has a task placed in his folder
-            List<String> list = zk.getChildren(availableWorkers, true);
-            while (list.size() == 0) {
-                Thread.sleep (5000);
-                list = zk.getChildren(availableWorkers, true);
-            }
-
-            String workerBee;
-            for (int i = 0; i < list.size(); i++) {
-                System.out.println (list.get(i));
-                workerBee = list.get(i);
-                Stat stat = zk.setData (squenceNumDispenser, "nothing".getBytes(), -1);
-                //create a task with a unique task number, we will remember this number later for checking if tasks are finished
-                zk.create(
-                    myTasks + "/" + workerBee + "/task" + stat.getVersion(),
-                    null,           // Data not needed.
-                    Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
-                    CreateMode.PERSISTENT   // Znode type, set to Persistent.
-                    );
-            }
 
         } catch(KeeperException e) {
             System.out.println(e.code());
@@ -145,6 +165,7 @@ public class JobTracker {
             System.out.println("Make node:" + e.getMessage());
         }
 
+        System.out.println ("starting to listen for clients");
 		try {
 		    while (listening) {
 		        new JobTrackerHandlerThread(serverSocket.accept(), args[0]).start();
