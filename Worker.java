@@ -66,7 +66,7 @@ public class Worker {
                                 handleEvent(event);
                         
                             } };   
-                                 
+
         nodeCreatedSignal = new CountDownLatch(1);
         zkc = new ZkConnector();
         try {
@@ -169,6 +169,40 @@ public class Worker {
                         zk.create (tempResults + "/" + list.get(i), "NOT_FOUND".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                     }
                     zk.delete(myWorkFolder + "/" + list.get(i), 0);
+
+                    //need to clean up here
+                    int temp_tasks_done = 0;
+                    found_key = false;
+                    List<String> temp_results = zk.getChildren(tempResults, true);
+                    data = zk.getData(inProgress+"/"+hashKey, false, null);
+                    dataString = new String(data);
+                    dataStringToken = dataString.split (":");
+                    String[] allTasks = dataStringToken[1].split("[ ]+");
+                    for (int j = 0; j < allTasks.length; j++) {
+                        for (int k = 0; k < temp_results.size(); k++) {
+                            if (temp_results.get(k).equals("task"+allTasks[j])) {
+                                temp_tasks_done++;
+                                byte[] password_data = zk.getData (tempResults + "/" + temp_results.get(k), false, null);
+                                String password_string = new String (password_data);
+                                if (password_string.equals("NOT_FOUND") == false) {
+                                    found_key = true;
+                                    password = password_string;
+                                }
+                            }
+                        }
+                    }
+                    if (temp_tasks_done == allTasks.length) {
+                        //all nodes are done, time to delete
+                        if (found_key == true)
+                            zk.create (finishedJobs + "/" + hashKey, password.getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                        else
+                            zk.create (finishedJobs + "/" + hashKey, "NOT_FOUND".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+                        zk.delete (inProgress + "/" + hashKey, 0);
+                        for (int i2 = 0; i2 < allTasks.length; i2++) {
+                            zk.delete (tempResults + "/task" + allTasks[i2], 0);
+                        }
+                    }
                 }
             } catch (IOException e) {
                 System.out.println ("File server boss went down");
