@@ -95,14 +95,15 @@ public class JobTrackerHandlerThread extends Thread {
 
 		            //This stores the state of the task in the inProgress dicrectory
 		            taskMetaData = allWorkersOfCurrentTask + ":" + squenceNumOfCurrentTask;
-	                zk.create(
-	                    inProgress + "/" + packetFromClient.content,
-	                    taskMetaData.getBytes(),         
-	                    Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
-	                    CreateMode.PERSISTENT   // Znode type, set to Persistent.
-	                    );
-
-					
+		            Stat s = zk.exists (inProgress + "/" + packetFromClient.content, false);
+		            if (s == null) {
+		                zk.create(
+		                    inProgress + "/" + packetFromClient.content,
+		                    taskMetaData.getBytes(),         
+		                    Ids.OPEN_ACL_UNSAFE,    // ACL, set to Completely Open.
+		                    CreateMode.PERSISTENT   // Znode type, set to Persistent.
+		                    );
+					}
 					/* process the job here */
 
 					//packetToClient.type = JobPacket.JOB_RECEIVED;

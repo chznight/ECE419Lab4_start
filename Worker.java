@@ -113,7 +113,10 @@ public class Worker {
                     System.out.println (list.get(i));
                     //create a task with a unique task number, we will remember this number later for checking if tasks are finished
                     //process here... then delete
-                    zk.create (tempResults + "/" + list.get(i), "NOT_FOUND".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    byte[] data = zk.getData(myWorkFolder+"/"+list.get(i), false, null);
+                    String dataString = new String(data);
+                    System.out.println (dataString);
+                    zk.create (tempResults + "/" + list.get(i), "qqqqqq".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                     zk.delete(myWorkFolder + "/" + list.get(i), 0);
                 }
             }

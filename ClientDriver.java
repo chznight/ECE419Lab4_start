@@ -73,36 +73,36 @@ public class ClientDriver {
 				System.out.println("Gonna crack "+line+"! This is job #"+job_list.size());
 				packetToServer.type = JobPacket.JOB_SUBMISSION;				
 				packetToServer.content=line;
-				//toServer.writeObject(packetToServer);
+				toServer.writeObject(packetToServer);
 
-				//packetFromServer = (JobPacket) fromServer.readObject();
+				packetFromServer = (JobPacket) fromServer.readObject();
 
-				// if(packetFromServer.type==JobPacket.JOB_RECEIVED){
-				// 	System.out.println("Submission received");
-				// }else{
-				// 	System.err.println("ERROR: Unknown JOB_* packet!!");
-				// 	System.exit(-1);
-				// }
+				if(packetFromServer.type==JobPacket.JOB_RECEIVED){
+					System.out.println("Submission received");
+				}else{
+					System.err.println("ERROR: Unknown JOB_* packet!!");
+					System.exit(-1);
+				}
 
 			} else if(line.equals("q")){
 				for(int i=0;i<job_list.size();i++){
 					System.out.println("Querying status of job #"+(i+1)+"...");
-					// packetToServer.type = JobPacket.JOB_QUERY;				
-					// packetToServer.content=job_list.get(i);
-					// toServer.writeObject(packetToServer);	
+					packetToServer.type = JobPacket.JOB_QUERY;				
+					packetToServer.content=job_list.get(i);
+					toServer.writeObject(packetToServer);	
 
-					// packetFromServer = (JobPacket) fromServer.readObject();
+					packetFromServer = (JobPacket) fromServer.readObject();
 
-					// if(packetFromServer.type==JobPacket.JOB_CALCULATING){
-					// 	System.out.println("Calculating");
-					// }else if(packetFromServer.type==JobPacket.JOB_FOUND){
-					// 	System.out.println("Password found: "+packetFromServer.content);
-					// }else if(packetFromServer.type==JobPacket.JOB_NOTFOUND){
-					// 	System.out.println("Password not found");	
-					// }else{
-					// 	System.err.println("ERROR: Unknown JOB_* packet!!");
-					// 	System.exit(-1);
-					// }
+					if(packetFromServer.type==JobPacket.JOB_CALCULATING){
+						System.out.println("Calculating");
+					}else if(packetFromServer.type==JobPacket.JOB_FOUND){
+						System.out.println("Password found: "+packetFromServer.content);
+					}else if(packetFromServer.type==JobPacket.JOB_NOTFOUND){
+						System.out.println("Password not found");	
+					}else{
+						System.err.println("ERROR: Unknown JOB_* packet!!");
+						System.exit(-1);
+					}
 
 				}
 			} else if (line.equals("quit")) {
