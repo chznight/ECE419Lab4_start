@@ -118,6 +118,7 @@ public class ClientDriver {
 			} catch (IOException e) {
 				System.out.println("Server went down, wait for backup");
 			} catch (Exception e) {
+				System.out.println("Server went down, wait for backup");
 				System.out.println(e.getMessage());
 			}
 		}		
@@ -135,7 +136,7 @@ public class ClientDriver {
 				toServer = new ObjectOutputStream(socket.getOutputStream());
 				fromServer = new ObjectInputStream(socket.getInputStream());
 			    nodeCreatedSignal.countDown();
-			    System.out.println("Connected, press Enter continue: ");
+			    System.out.println("Connected, some jobs might have to be resent, press Enter continue: ");
             }         
         } catch(KeeperException e) {
             System.out.println(e.code());

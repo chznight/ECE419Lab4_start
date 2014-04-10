@@ -177,7 +177,7 @@ public class JobTrackerHandlerThread extends Thread {
 						//check if nodes are down, if they are reasign tasks
 						//reply accordingly
 					} else {
-						System.out.println ("job lost?!");
+						packetToClient.type = JobPacket.JOB_NOTFOUND;
 					}
 
 					// query status of job here
