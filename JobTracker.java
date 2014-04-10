@@ -31,6 +31,7 @@ public class JobTracker {
     static ZooKeeper zk;
     static ZkConnector zkc;
     static Watcher watcher;
+    static Watcher watcherReschedule;
     static int myPort;
     static CountDownLatch nodeCreatedSignal = new CountDownLatch(1);
 
@@ -54,13 +55,23 @@ public class JobTracker {
         }
 
         zk = zkc.getZooKeeper();
-        watcher = new Watcher() { // Anonymous Watcher
+        watcher = new Watcher() { // watch for replacement backup
                             @Override
                             public void process(WatchedEvent event) {
                                 handleEvent(event);
                         
                             } };
 
+        watcherReschedule = new Watcher() { // watch for replacement backup
+                            @Override
+                            public void process(WatchedEvent event) {
+                                System.out.println (event.getType());
+                                boolean isMyPath = event.getPath().equals(availableWorkers);
+                                if (isMyPath) {
+                                    taskReschedule();
+                                }
+                            } 
+                        };
         checkpath();
 
         System.out.println ("Waiting for other Job Tracker to go down...");
@@ -237,8 +248,9 @@ public class JobTracker {
 
     private static void taskReschedule() {
         try {
+            System.out.println ("In Rescheduler");
             int distributor = 0;
-            List<String> available_workers = zk.getChildren(availableWorkers, true);
+            List<String> available_workers = zk.getChildren(availableWorkers, watcherReschedule);
             int worker_list_size = available_workers.size();
             if (available_workers.size() == 0) { //no working node, cant really do anything
                 return;
