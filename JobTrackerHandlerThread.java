@@ -80,9 +80,9 @@ public class JobTrackerHandlerThread extends Thread {
 
 		                String chunck_start_end; //store where to begin, where to end, and hash
 		                if (i == (num_nodes - 1)) {
-		                	chunck_start_end = i*num_chunks_per_node + " " + 265 + " " + packetFromClient.content;
+		                	chunck_start_end = i*num_chunks_per_node + " " + 266 + " " + packetFromClient.content;
 		                } else {
-		                	chunck_start_end = i*num_chunks_per_node + " " + ((i+1)*num_chunks_per_node-1) + " " + packetFromClient.content;
+		                	chunck_start_end = i*num_chunks_per_node + " " + ((i+1)*num_chunks_per_node) + " " + packetFromClient.content;
 		                }
 		                
 		                zk.create(

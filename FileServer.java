@@ -22,29 +22,29 @@ public class FileServer {
         
 	ArrayList<ArrayList<String>> partition_list=null;
 	ServerSocket serverSocket = null;
-        boolean listening = true;
-        int myPort;
+    boolean listening = true;
+    int myPort;
 
-        if (args.length != 3) {
-            System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. FileServer zkServer:clientPort <Port to be used> <File name of dictionary>");
-            return;
-        }
+    if (args.length != 3) {
+    	System.out.println("Usage: java -classpath lib/zookeeper-3.3.2.jar:lib/log4j-1.2.15.jar:. FileServer zkServer:clientPort <Port to be used> <File name of dictionary>");
+    	return;
+    }
 
-        ZkConnector zkc = new ZkConnector();
+    ZkConnector zkc = new ZkConnector();
 	myPort=Integer.parseInt(args[1]);
 	
 	try {
-            zkc.connect(args[0]);
-        } catch(Exception e) {
-            System.out.println("Zookeeper connect "+ e.getMessage());
-        }
+    	zkc.connect(args[0]);
+    } catch(Exception e) {
+    	System.out.println("Zookeeper connect "+ e.getMessage());
+    }
 
-        try {
-            serverSocket = new ServerSocket(myPort);
-        } catch (IOException e) {
-            System.err.println("ERROR: Could not listen on port!");
-            System.exit(-1);
-        }
+	try {
+		serverSocket = new ServerSocket(myPort);
+	} catch (IOException e) {
+		System.err.println("ERROR: Could not listen on port!");
+		System.exit(-1);
+	}
 
 	try{
 		ArrayList<String> dictionary_list = new ArrayList<String>();
@@ -61,14 +61,14 @@ public class FileServer {
 
 		partition_list = new ArrayList<ArrayList<String>>();
 		int num_partition=(dictionary_list.size()/1000)+(dictionary_list.size()-((dictionary_list.size()/1000)*1000)==0?0:1);
-		int fromIndex=0, toIndex=999;
+		int fromIndex=0, toIndex=1000;
 
 		for(int i=0;i<num_partition;i++){
 			ArrayList<String> derp=new ArrayList<String>(dictionary_list.subList(fromIndex, toIndex));
 			partition_list.add(derp);
 			if(i==num_partition-2){
 				fromIndex+=1000;
-				toIndex=dictionary_list.size()-1;
+				toIndex=dictionary_list.size();
 			}else{
 				fromIndex+=1000;
 				toIndex+=1000;
@@ -76,14 +76,15 @@ public class FileServer {
 		}
 
 		dictionary_list=null; // to save memory
-
+		//yo, no point, memory is still referenced by partition_list
+        
         } catch(Exception e) {
             System.out.println("Zookeeper connect "+ e.getMessage());
         }
 
         ZooKeeper zk = zkc.getZooKeeper(); /*How to find the job tracker ip and port*/
 
-	try{
+		try{
             String hostIpPort = InetAddress.getLocalHost().getHostAddress() + ":" + myPort;
             System.out.println("Creating " + fileServerBoss);
             zk.create(

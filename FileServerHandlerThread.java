@@ -37,7 +37,7 @@ public class FileServerHandlerThread extends Thread {
 				DictionaryPacket packetToClient = new DictionaryPacket();
 				
 				if(packetFromClient.type == DictionaryPacket.DICT_REQUEST) {
-					System.out.println("(REQUEST) From Client: " + packetFromClient.content);
+					System.out.println("(REQUEST) From Client");
 					
 					packetToClient.type = DictionaryPacket.DICT_REPLY;
 
