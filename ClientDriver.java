@@ -53,10 +53,10 @@ public class ClientDriver {
 			socket2 = new Socket (ip_port[0], port);
 			
 
-
+			ObjectOutputStream toServer = new ObjectOutputStream(socket2.getOutputStream());
 			ObjectInputStream fromServer = new ObjectInputStream(socket2.getInputStream());
 			JobPacket packetFromServer;
-			ObjectOutputStream toServer = new ObjectOutputStream(socket2.getOutputStream());
+
 
 			System.out.println ("Connected to job tracker");
 		while(calculating){
