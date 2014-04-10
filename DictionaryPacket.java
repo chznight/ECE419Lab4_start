@@ -1,4 +1,6 @@
 import java.io.Serializable;
+import java.util.List;
+import java.util.*;
 
 public class DictionaryPacket implements Serializable {
 
@@ -11,7 +13,8 @@ public class DictionaryPacket implements Serializable {
 	/* initialized to be a null packet */
 	public int type = DICT_NULL;
 	
-	/* content (mandatory for REPLY) */
-	public String content;
+	/* content (index is for REQUEST, content is for REPLY) */
+	public ArrayList<String> content;
+	public int index;
 	
 }

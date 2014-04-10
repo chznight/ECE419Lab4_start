@@ -57,8 +57,7 @@ public class JobTrackerHandlerThread extends Thread {
 				JobPacket packetToClient = new JobPacket();
 				
 				if(packetFromClient.type == JobPacket.JOB_SUBMISSION) {
-					System.out.println("(SUBMISSION) From Client: " + packetFromClient.content);
-				
+					System.out.println("(SUBMISSION) From Client: " + packetFromClient.content);				
 
 		            //Here we start to look at the list of availible works
 		            //If a worker is aviliable, we place a task in his work folder: /tasks/work#/
@@ -106,8 +105,12 @@ public class JobTrackerHandlerThread extends Thread {
 	                    CreateMode.PERSISTENT   // Znode type, set to Persistent.
 	                    );
 
+					
+					/* process the job here */
 
-					packetToClient.type = JobPacket.JOB_RECEIVED;
+					//packetToClient.type = JobPacket.JOB_RECEIVED;
+					packetToClient.type = JobPacket.JOB_RECEIVED; //just send back this
+
 					toClient.writeObject(packetToClient);
 					continue;
 				}
@@ -158,12 +161,15 @@ public class JobTrackerHandlerThread extends Thread {
 
 					// query status of job here
 
+
 					//packetToClient.type = JobPacket.JOB_CALCULATING;
 					//packetToClient.type = JobPacket.JOB_FOUND;
 					//packetToClient.content = password;
 					//packetToClient.type = JobPacket.JOB_NOTFOUND;
 					
 
+					toClient.writeObject(packetToClient);
+					continue;
 				}
 				
 				System.err.println("ERROR: Unknown JOB_* packet!!");
