@@ -7,6 +7,7 @@ import org.apache.zookeeper.ZooKeeper.States;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.List;
@@ -21,6 +22,7 @@ public class ZkConnector implements Watcher {
     // with count 1, that is, ZooKeeper connect state.
     CountDownLatch connectedSignal = new CountDownLatch(1);
     
+    // ACL, set to Completely Open
     protected static final List<ACL> acl = Ids.OPEN_ACL_UNSAFE;
 
     /**
@@ -31,15 +33,15 @@ public class ZkConnector implements Watcher {
         zooKeeper = new ZooKeeper(
                 hosts, // ZooKeeper service hosts
                 5000,  // Session timeout in milliseconds
-                this); // watches -- this class implements Watcher; events are handled by the process method
-	    connectedSignal.await();
+                this); // watcher - see process method for callbacks
+        connectedSignal.await();
     }
 
     /**
      * Closes connection with ZooKeeper
      */
     public void close() throws InterruptedException {
-	    zooKeeper.close();
+        zooKeeper.close();
     }
 
     /**
@@ -48,13 +50,42 @@ public class ZkConnector implements Watcher {
     public ZooKeeper getZooKeeper() {
         // Verify ZooKeeper's validity
         if (null == zooKeeper || !zooKeeper.getState().equals(States.CONNECTED)) {
-	        throw new IllegalStateException ("ZooKeeper is not connected.");
+            throw new IllegalStateException ("ZooKeeper is not connected.");
         }
         return zooKeeper;
     }
 
+    protected Stat exists(String path, Watcher watch) {
+        
+        Stat stat =null;
+        try {
+            stat = zooKeeper.exists(path, watch);
+        } catch(Exception e) {
+        }
+        
+        return stat;
+    }
+
+    protected KeeperException.Code create(String path, String data, CreateMode mode) {
+        
+        try {
+            byte[] byteData = null;
+            if(data != null) {
+                byteData = data.getBytes();
+            }
+            zooKeeper.create(path, byteData, acl, mode);
+            
+        } catch(KeeperException e) {
+            return e.code();
+        } catch(Exception e) {
+            return KeeperException.Code.SYSTEMERROR;
+        }
+        
+        return KeeperException.Code.OK;
+    }
+
     public void process(WatchedEvent event) {
-        // check if event is for connection done; if so, unblock main thread blocked in connect
+        // release lock if ZooKeeper is connected.
         if (event.getState() == KeeperState.SyncConnected) {
             connectedSignal.countDown();
         }
