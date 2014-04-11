@@ -15,7 +15,6 @@ public class JobPacket implements Serializable {
 	 public static final int JOB_NOTFOUND	= 5;
 
 	 public static final int JOB_NULL		= 6;
-	 public static final int JOB_BYE		= 7;
 	 
 	/* initialized to be a null packet */
 	public int type = JOB_NULL;

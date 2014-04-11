@@ -111,7 +111,7 @@ public class JobTrackerHandlerThread extends Thread {
 
 		            //This stores the state of the task in the inProgress dicrectory
 		            taskMetaData = allWorkersOfCurrentTask + ":" + squenceNumOfCurrentTask;
-		            s = zk.exists (inProgress + "/" + packetFromClient.content, false);
+		            Stat s = zk.exists (inProgress + "/" + packetFromClient.content, false);
 		            if (s == null) {
 		                zk.create(
 		                    inProgress + "/" + packetFromClient.content,
