@@ -82,7 +82,13 @@ public class Worker {
         boolean running = true;
 
         try {
-            Stat stat = zk.setData (workerIdDispenser, "nothing".getBytes(), -1);
+            Stat stat = zk.exists(jobTrackerBoss, false);
+            while (stat == null) {
+                Thread.sleep(5000);
+                stat = zk.exists(jobTrackerBoss, false);
+            }
+
+            stat = zk.setData (workerIdDispenser, "nothing".getBytes(), -1);
             System.out.println ("version: " + stat.getVersion());
             myWorkerId = stat.getVersion();
             
