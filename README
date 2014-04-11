@@ -1,0 +1,27 @@
+Team members (<first name>, <last name>, <student ID>)
+1. Chen Hao, Zhang, 999272228
+2. Shiuh Sen, Ang, 999295089
+
+Instructions:
+
+1.	First, start the zookeeper in myzk directory:
+	$ bin/zkServer.sh start
+	*	To continue we need to know <zk's ip> which is the ip of the machine the zookeeper is running on,
+		and also <zk's port> which is the port of the zookeeper which can be found by running below in
+		myzk directory:
+	$ cat conf/zoo.cfg
+
+2.	Start the Job Tracker:
+	$ ./FileServer.sh <zk's ip>:<zk's port> <my port>
+
+3.	Start the File Server:
+	$ ./FileServer.sh <zk's ip>:<zk's port> <my port> <dictionary file>
+
+4.	Start the Worker:
+	$ ./FileServer.sh <zk's ip>:<zk's port>
+
+5.	Finally, start the Client Driver:
+	$ ./FileServer.sh <zk's ip>:<zk's port>
+	
+	Following this, there will be a simple user interface to let the client to choose to submit a cracking request or
+	to query the status of the request submitted.
