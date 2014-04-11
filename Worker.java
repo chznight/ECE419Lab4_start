@@ -206,10 +206,13 @@ public class Worker {
                 }
             } catch (IOException e) {
                 System.out.println ("File server boss went down");
-                nodeCreatedSignal = new CountDownLatch(1);
                 System.out.println(e.getMessage());
-                continue;
+                try {
+                	Thread.sleep(5000);
+                } catch (Exception e2) {
                 
+                }
+                continue;
             } catch (Exception e) {
                 System.out.println(e.getMessage());
             }
